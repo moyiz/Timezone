@@ -12,6 +12,10 @@
     #include <avr/eeprom.h>
 #endif
 
+#ifdef ESP_PLATFORM
+    #include <EEPROM.h>
+#endif
+
 /*----------------------------------------------------------------------*
  * Create a Timezone object from the given time change rules.           *
  *----------------------------------------------------------------------*/
@@ -31,7 +35,7 @@ Timezone::Timezone(TimeChangeRule stdTime)
         initTimeChanges();
 }
 
-#ifdef __AVR__
+#if defined(__AVR__) || defined(ESP_PLATFORM)
 /*----------------------------------------------------------------------*
  * Create a Timezone object from time change rules stored in EEPROM     *
  * at the given address.                                                *
@@ -215,6 +219,32 @@ void Timezone::setRules(TimeChangeRule dstStart, TimeChangeRule stdStart)
     m_std = stdStart;
     initTimeChanges();  // force calcTimeChanges() at next conversion call
 }
+
+#ifdef ESP_PLATFORM
+/*----------------------------------------------------------------------*
+ * Read the daylight and standard time rules from EEPROM at             *
+ * the given address.                                                   *
+ *----------------------------------------------------------------------*/
+void Timezone::readRules(int address)
+{
+    EEPROM.readBytes((int) &m_dst, (char *) address, sizeof(m_dst));
+    address += sizeof(m_dst);
+    EEPROM.readBytes((int) &m_std, (char *) address, sizeof(m_std));
+    initTimeChanges(); // force calcTimeChanges() at next conversion call
+}
+
+/*----------------------------------------------------------------------*
+ * Write the daylight and standard time rules to EEPROM at              *
+ * the given address.                                                   *
+ *----------------------------------------------------------------------*/
+void Timezone::writeRules(int address)
+{
+    EEPROM.writeBytes((int) &m_dst, (char *) address, sizeof(m_dst));
+    address += sizeof(m_dst);
+    EEPROM.writeBytes((int) &m_std, (char *) address, sizeof(m_std));
+    EEPROM.commit();
+}
+#endif
 
 #ifdef __AVR__
 /*----------------------------------------------------------------------*
